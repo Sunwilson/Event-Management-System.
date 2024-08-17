@@ -1,0 +1,309 @@
+
+import 'dart:io';
+import 'dart:convert';
+
+void main() {
+  Map<String, dynamic> data = loadData();
+
+  while (true) {
+    print("1. Event Management");
+    print("2. Attendance Tracking");
+    print("3. Scheduling");
+    print("4. Exit");
+    stdout.write("Choose an option: ");
+    String option = stdin.readLineSync()!;
+
+    switch (option) {
+      case "1":
+        eventManagement(data);
+        break;
+      case "2":
+        attendanceTracking(data);
+        break;
+      case "3":
+        scheduling(data);
+        break;
+      case "4":
+        saveData(data);
+        exit(0);
+      default:
+        print("Invalid option. Please choose a valid option.");
+    }
+  }
+}
+
+// Event Management
+void eventManagement(Map<String, dynamic> data) {
+  while (true) {
+    print("1. Add new event");
+    print("2. Edit existing event");
+    print("3. Delete existing event");
+    print("4. List all upcoming and past events");
+    print("5. Back");
+    stdout.write("Choose an option: ");
+    String option = stdin.readLineSync()!;
+
+    switch (option) {
+      case "1":
+        addEvent(data);
+        break;
+      case "2":
+        editEvent(data);
+        break;
+      case "3":
+        deleteEvent(data);
+        break;
+      case "4":
+        listEvents(data);
+        break;
+      case "5":
+        return;
+      default:
+        print("Invalid option. Please choose a valid option.");
+    }
+  }
+}
+
+// Attendance Tracking
+void attendanceTracking(Map<String, dynamic> data) {
+  while (true) {
+    print("1. Register attendees for each event");
+    print("2. View the list of attendees for a specific event");
+    print("3. Mark attendees as present or absent");
+    print("4. Back");
+    stdout.write("Choose an option: ");
+    String option = stdin.readLineSync()!;
+
+    switch (option) {
+      case "1":
+        registerAttendees(data);
+        break;
+      case "2":
+        viewAttendees(data);
+        break;
+      case "3":
+        markAttendees(data);
+        break;
+      case "4":
+        return;
+      default:
+        print("Invalid option. Please choose a valid option.");
+    }
+  }
+}
+void registerAttendees(Map<String,dynamic> data){
+  stdout.write("Enter event title to register attendees for: ");
+  String title = stdin.readLineSync()!;
+  if(data.containsKey(title)){
+    while(true){
+      stdout.write("Enter attendee name (or type 'done' to finish): ");
+      String attendeeName = stdin.readLineSync()!;
+      if(attendeeName.toLowerCase() == "done"){
+        break;
+      }
+      data[title]['attendees'].add(attendeeName);
+      saveData(data);
+    }
+  }
+  else{
+    print("Event not found.");
+  }
+}
+void viewAttendees(Map<String, dynamic> data){
+  stdout.write("Enter event title to view attendees: ");
+  String title = stdin.readLineSync()!;
+  if(data.containsKey(title)){
+    if(data[title]['attendees'].isNotEmpty){
+      print("Attendees for ${title}:");
+      for(String attendee in data[title]['attendees']){
+        print("- $attendee");
+      }
+    }
+    else{
+      print("No attendees registered for ${title}.");
+    }
+  }
+  else{
+    print("Event not found.");
+  }
+}
+void markAttendees(Map<String,dynamic> data){
+  stdout.write("Enter event title to mark attendees: ");
+  String title = stdin.readLineSync()!;
+  if(data.containsKey(title)){
+    while(true){
+      stdout.write("Enter attendee name (or type 'done' to finish): ");
+      String attendeeName = stdin.readLineSync()!;
+      if(attendeeName.toLowerCase() == "done"){
+        break;
+      }
+      if(data[title]['attendees'].contains(attendeeName)){
+        stdout.write("Mark ${attendeeName} as (P)resent or (A)bsent: ");
+        String status = stdin.readLineSync()!.toUpperCase();
+        if(status == "P"){
+          data[title]['attendees'][data[title]['attendees'].indexOf(attendeeName)] = "${attendeeName} (Present)";
+        }
+        else if(status == "A"){
+          data[title]['attendees'][data[title]['attendees'].indexOf(attendeeName)] = "${attendeeName} (Absent)";
+        }
+        else{
+          print("Invalid status. Please enter 'P' for present or 'A' for absent.");
+        }
+        saveData(data);
+      }
+      else{
+        print("Attendee not found for this event.");
+      }
+    }
+  }
+  else{
+    print("Event not found.");
+  }
+}
+
+// Scheduling
+void scheduling(Map<String, dynamic> data) {
+  while (true) {
+    print("1. List events in chronological order");
+    print("2. Check for schedule conflicts");
+    print("3. Back");
+    stdout.write("Choose an option: ");
+    String option = stdin.readLineSync()!;
+
+    switch (option) {
+      case "1":
+        listEventsChronologically(data);
+        break;
+      case "2":
+        checkScheduleConflicts(data);
+        break;
+      case "3":
+        return;
+      default:
+        print("Invalid option. Please choose a valid option.");
+    }
+   }
+  }
+  void listEventsChronologically(Map<String, dynamic> data) {
+    List<Map<String, dynamic>> events = data.values.toList();
+    events.sort((a, b) => DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
+    print("Events in Chronological Order:");
+    for (Map<String, dynamic> event in events) {
+      print("- ${event['title']} - ${event['date']} ${event['time']}");
+    }
+  }
+   
+
+void checkScheduleConflicts(Map<String, dynamic data){
+  List<Map<String, dynamic>> events = data.values.toList();
+  for(int i = 0; i < events.length; i++){
+    for(int j = i+1; j < events.length; j++){
+      if(events[i]['date'] == events[j]['date']){
+        if(DateTime.parse(events[i]['time']).isBefore(DateTime.parse(events[j]['time'])) && DateTime.parse(events[i]['time']).add(Duration(hours: 1)).isAfter(DateTime.parse(events[j]['time']))){
+          print("Schedule Conflict detected for events: ${events[i]['title']} and ${events[j]['title']}");
+        }
+      }
+    }
+  }
+}
+
+// Data Persistence
+void saveData(Map<String, dynamic> data) {
+  try {
+    File('events.json').writeAsStringSync(jsonEncode(data));
+  } catch (e) {
+    print("Error saving data: ${e.toString()}");
+  }
+}
+
+Map<String, dynamic> loadData() {
+  if (File('events.json').existsSync()) {
+    try {
+      return jsonDecode(File('events.json').readAsStringSync());
+    } catch (e) {
+      print("Error loading data: ${e.toString()}");
+      return {};
+    }
+  } else {
+    return {};
+  }
+}
+
+// Add Event
+void addEvent(Map<String, dynamic> data) {
+  stdout.write("Enter event title: ");
+  String title = stdin.readLineSync()!;
+  stdout.write("Enter event date (YYYY-MM-DD): ");
+  String date = stdin.readLineSync()!;
+  stdout.write("Enter event time (HH:mm): ");
+  String time = stdin.readLineSync()!;
+  stdout.write("Enter event location: ");
+  String location = stdin.readLineSync()!;
+  stdout.write("Enter event description: ");
+  String description = stdin.readLineSync()!;
+
+  data[title] = {
+    'date': date,
+    'time': time,
+    'location': location,
+    'description': description,
+    'attendees': []
+  };
+
+  saveData(data);
+}
+
+// Edit Event
+void editEvent(Map<String, dynamic> data) {
+  listEvents(data);
+  stdout.write("Enter event title to edit: ");
+  String title = stdin.readLineSync()!;
+  if (data.containsKey(title)) {
+    stdout.write("Enter new event date (YYYY-MM-DD): ");
+    String date = stdin.readLineSync()!;
+    stdout.write("Enter new event time (HH:mm): ");
+    String time = stdin.readLineSync()!;
+    stdout.write("Enter new event location: ");
+    String location = stdin.readLineSync()!;
+    stdout.write("Enter new event description: ");
+    String description = stdin.readLineSync()!;
+
+    data[title] = {
+      'date': date,
+      'time': time,
+      'location': location,
+      'description': description,
+      'attendees': data[title]['attendees']
+    };
+
+    saveData(data);
+  } else {
+    print("Event not found.");
+  }
+}
+
+// Delete Event
+void deleteEvent(Map<String, dynamic> data) {
+  listEvents(data);
+  stdout.write("Enter event title to delete: ");
+  String title = stdin.readLineSync()!;
+  if (data.containsKey(title)) {
+    data.remove(title);
+    saveData(data);
+    print("Event deleted successfully.");
+  } else {
+    print("Event not found.");
+  }
+}
+
+// List Events
+void listEvents(Map<String, dynamic> data) {
+  if (data.isEmpty) {
+    print("No events found.");
+  } else {
+    print("Upcoming and past events:");
+    data.forEach((key, value) {
+      print("- ${key} - ${value['date']} ${value['time']}");
+    });
+  }
+}
